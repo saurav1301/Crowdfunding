@@ -18,12 +18,42 @@ const CampaignDetails = () => {
 
   const remainingDays = daysLeft(state.deadline);
 
+  const [totalDonated, setTotalDonated] = useState("0");
+  const [amountCollected, setAmountCollected] = useState(ethers.BigNumber.from(0));
+
+
   const fetchDonators = async () => {
     const data = await getDonations(state.pId);
-
+    console.log("Donations Data:", data);  // ✅ Check if donations are being retrieved
+  
+    // Ensure donations exist
+    if (!data || data.length === 0) {
+      console.warn("No donations found.");
+      setAmountCollected(ethers.BigNumber.from(0));
+      return;
+    }
+  
+    // Convert all donations to BigNumber
+    const totalDonations = data.reduce((sum, donation) => {
+      try {
+        console.log("Raw Donation:", donation.donation, "Type:", typeof donation.donation);
+        const donationValue = ethers.utils.parseUnits(donation.donation.toString(), "ether"); 
+        return sum.add(donationValue);
+      } catch (error) {
+        console.error("Error parsing donation:", donation.donation, error);
+        return sum;
+      }
+    }, ethers.BigNumber.from(0));
+  
+    console.log("Total Donations Sum (Wei):", totalDonations.toString());
+    console.log("Total Donations Sum (ETH):", ethers.utils.formatEther(totalDonations));
+  
     setDonators(data);
-  }
-
+    setAmountCollected(totalDonations);  // ✅ Update state with correct value
+  };
+  
+  
+  
   useEffect(() => {
     if(contract) fetchDonators();
   }, [contract, address])
@@ -36,6 +66,8 @@ const CampaignDetails = () => {
     navigate('/')
     setIsLoading(false);
   }
+
+
 
   return (
     <div>
@@ -52,8 +84,12 @@ const CampaignDetails = () => {
 
         <div className="flex md:w-[150px] w-full flex-wrap justify-between gap-[30px]">
           <CountBox title="Days Left" value={remainingDays} />
-          <CountBox title={`Raised of ${state.target}`} value={state.amountCollected} />
-          <CountBox title="Total Backers" value={donators.length} />
+          <CountBox 
+  title={`Raised of ${ethers.utils.formatEther(ethers.BigNumber.from(state.target.toString().split('.')[0]))} ETH`} 
+  value={`${ethers.utils.formatEther(ethers.BigNumber.from(state.amountCollected.toString()))} ETH`} 
+/>
+
+         <CountBox title="Total Backers" value={donators.length} />
         </div>
       </div>
 

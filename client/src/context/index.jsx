@@ -1,16 +1,23 @@
-import React, { useContext, createContext } from 'react';
-
-import { useAddress, useContract, useMetamask, useContractWrite } from '@thirdweb-dev/react';
-import { ethers } from 'ethers';
-import { EditionMetadataWithOwnerOutputSchema } from '@thirdweb-dev/sdk';
+import React, { useContext, createContext } from "react";
+import { 
+  useAddress, 
+  useContract, 
+  useMetamask, 
+  useContractWrite 
+} from "@thirdweb-dev/react";
+import { ethers } from "ethers";
 
 const StateContext = createContext();
 
 export const StateContextProvider = ({ children }) => {
-  const { contract } = useContract("0x6E2FeD32f87B5B42dF72f6508A87270DB8B8ed70");
-  console.log("Contract Instance:", contract);  // Debugging line
+  // Fetch contract with correct chain ID (Sepolia: 11155111)
+  const { contract, isLoading, error } = useContract("0xf41178235c7832d6beea2e8d53974952b948e8c2");
 
-  const { mutateAsync: createCampaign } = useContractWrite(contract, 'createCampaign');
+  console.log("Contract Instance:", contract);
+  console.log("Contract Loading:", isLoading);
+  console.log("Contract Error:", error);
+
+  const { mutateAsync: createCampaign } = useContractWrite(contract, "createCampaign");
 
   const address = useAddress();
   const connect = useMetamask();
@@ -22,73 +29,89 @@ export const StateContextProvider = ({ children }) => {
     }
     try {
       const data = await createCampaign({
-				args: [
-					address, // owner
-					form.title, // title
-					form.description, // description
-					form.target,
-					new Date(form.deadline).getTime(), // deadline,
-					form.image,
-				],
-			});
+        args: [
+          address, 
+          form.title, 
+          form.description, 
+          ethers.utils.parseEther(form.target?.toString() || "0"), // Safe conversion
+          Math.floor(new Date(form.deadline).getTime() / 1000), // Convert to UNIX timestamp
+          form.image,
+        ],
+      });
 
-      console.log("contract call success", data)
+      console.log("Contract call success", data);
     } catch (error) {
-      console.log("contract call failure", error)
+      console.error("Contract call failure", error);
     }
-  }
+  };
 
   const getCampaigns = async () => {
-    const campaigns = await contract.call('getCampaigns');
+    if (!contract) {
+      console.error("Contract is not available.");
+      return [];
+    }
 
-    const parsedCampaings = campaigns.map((campaign, i) => ({
-      owner: campaign.owner,
-      title: campaign.title,
-      description: campaign.description,
-      target: ethers.utils.formatEther(campaign.target.toString()),
-      deadline: campaign.deadline.toNumber(),
-      amountCollected: ethers.utils.formatEther(campaign.amountCollected.toString()),
-      image: campaign.image,
-      pId: i
-    }));
+    try {
+      const campaigns = await contract.call("getCampaigns");
 
-    return parsedCampaings;
-  }
+      return campaigns.map((campaign, i) => ({
+        owner: campaign.owner,
+        title: campaign.title,
+        description: campaign.description,
+        target: campaign.target ? ethers.utils.formatEther(campaign.target.toString()) : "0", // Safe check
+        deadline: campaign.deadline ? campaign.deadline.toNumber() : 0, // Default to 0 if undefined
+        amountCollected: campaign.amountCollected ? ethers.utils.formatEther(campaign.amountCollected.toString()) : "0", // Safe check
+        image: campaign.image || "", 
+        pId: i,
+      }));
+    } catch (error) {
+      console.error("Error fetching campaigns:", error);
+      return [];
+    }
+  };
 
   const getUserCampaigns = async () => {
     const allCampaigns = await getCampaigns();
-
-    const filteredCampaigns = allCampaigns.filter((campaign) => campaign.owner === address);
-
-    return filteredCampaigns;
-  }
+    return allCampaigns.filter((campaign) => campaign.owner === address);
+  };
 
   const donate = async (pId, amount) => {
-    const data = await contract.call('donateToCampaign', [pId], { value: ethers.utils.parseEther(amount)});
-
-    return data;
-  }
-
-  const getDonations = async (pId) => {
-    const donations = await contract.call('getDonators', [pId]);
-    const numberOfDonations = donations[0].length;
-
-    const parsedDonations = [];
-
-    for(let i = 0; i < numberOfDonations; i++) {
-      parsedDonations.push({
-        donator: donations[0][i],
-        donation: ethers.utils.formatEther(donations[1][i].toString())
-      })
+    if (!contract) {
+      console.error("Contract is not available.");
+      return;
     }
 
-    return parsedDonations;
-  }
+    try {
+      const data = await contract.call("donateToCampaign", [pId], {
+        value: ethers.utils.parseEther(amount?.toString() || "0"), // Safe conversion
+      });
+      return data;
+    } catch (error) {
+      console.error("Error donating:", error);
+    }
+  };
 
+  const getDonations = async (pId) => {
+    if (!contract) {
+      console.error("Contract is not available.");
+      return [];
+    }
+
+    try {
+      const donations = await contract.call("getDonators", [pId]);
+      return donations[0]?.map((donator, i) => ({
+        donator,
+        donation: donations[1]?.[i] ? ethers.utils.formatEther(donations[1][i].toString()) : "0", // Safe check
+      })) || [];
+    } catch (error) {
+      console.error("Error fetching donations:", error);
+      return [];
+    }
+  };
 
   return (
     <StateContext.Provider
-      value={{ 
+      value={{
         address,
         contract,
         connect,
@@ -96,12 +119,14 @@ export const StateContextProvider = ({ children }) => {
         getCampaigns,
         getUserCampaigns,
         donate,
-        getDonations
+        getDonations,
       }}
     >
       {children}
     </StateContext.Provider>
-  )
-}
+  );
+};
 
-export const useStateContext = () => useContext(StateContext);
+export function useStateContext() {
+  return useContext(StateContext);
+}

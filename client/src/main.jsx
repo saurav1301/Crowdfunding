@@ -1,21 +1,28 @@
-import React from 'react';
-import ReactDOM from  'react-dom/client';
-import { BrowserRouter as Router} from 'react-router-dom';
-import { ChainId, ThirdwebProvider } from '@thirdweb-dev/react';
+import { Buffer } from "buffer"; // Import Buffer polyfill
+if (!window.Buffer) window.Buffer = Buffer;
 
-import { StateContextProvider } from './context';
+import React from "react";
+import ReactDOM from "react-dom/client";
+import { BrowserRouter as Router } from "react-router-dom";
+import { ThirdwebProvider } from "@thirdweb-dev/react";
 
-import App from './App';
-import './index.css';
+import { StateContextProvider } from "./context";
+import App from "./App";
+import "./index.css";
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
+const root = ReactDOM.createRoot(document.getElementById("root"));
 
 root.render(
-    <ThirdwebProvider desiredChainId={ChainId.sepolia}>
-        <Router>
-            <StateContextProvider>
-                <App /> 
-            </StateContextProvider>  
-        </Router>
-    </ThirdwebProvider>
-)
+    <ThirdwebProvider 
+  activeChain={{
+    chainId: 11155111, // Sepolia
+    rpc: ["https://eth-mainnet.g.alchemy.com/v2/BpGdymLdaeKA6mmbZlcuUlAujD4KW0Ll"], // Replace with your Infura/Alchemy URL
+  }}
+>
+    <Router>
+      <StateContextProvider>
+        <App />
+      </StateContextProvider>
+    </Router>
+  </ThirdwebProvider>
+);

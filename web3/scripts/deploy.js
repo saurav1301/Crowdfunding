@@ -1,26 +1,36 @@
-require("dotenv").config();
 const { ThirdwebSDK } = require("@thirdweb-dev/sdk");
-const ethers = require("ethers");
+const { ethers } = require("ethers");
+require("dotenv").config(); // Load environment variables
 
-// Get your private key from the .env file
-const wallet = new ethers.Wallet(process.env.PRIVATE_KEY);
+const PRIVATE_KEY = process.env.PRIVATE_KEY;
+const RPC_URL = process.env.RPC_URL;
 
-// Connect to Sepolia network (you can also use other networks)
-const provider = new ethers.JsonRpcProvider("https://rpc.ankr.com/eth_sepolia");
-const signer = wallet.connect(provider);
+if (!PRIVATE_KEY || !RPC_URL) {
+  console.error("❌ Error: PRIVATE_KEY or RPC_URL is missing in .env file!");
+  process.exit(1);
+}
 
-// Initialize the Thirdweb SDK
-const sdk = new ThirdwebSDK(signer);
+const provider = new ethers.providers.JsonRpcProvider(RPC_URL);
+const wallet = new ethers.Wallet(PRIVATE_KEY, provider);
+const sdk = ThirdwebSDK.fromSigner(wallet);
 
 async function deployContract() {
   try {
-    // Deploy the contract
-    const contract = await sdk.deployer.deployContract(
-      "./artifacts/contracts/Crowdfunding.sol/Crowdfunding.json"
-    );
-    console.log(`Contract deployed at: ${contract.address}`);
+    console.log("🚀 Deploying contract...");
+
+    const contract = await sdk.deployer.deployBuiltInContract({
+      contractType: "custom",
+      contractMetadata: {
+        name: "Crowdfunding",
+        description: "A decentralized crowdfunding platform",
+        abi: require("../artifacts-zk/contracts/Crowdfunding.sol/Crowdfunding.json").abi,
+        bytecode: require("../artifacts-zk/contracts/Crowdfunding.sol/Crowdfunding.json").bytecode,
+      },
+    });
+
+    console.log("✅ Contract deployed at:", contract.address);
   } catch (error) {
-    console.error("Error deploying contract:", error);
+    console.error("❌ Error deploying contract:", error);
   }
 }
 

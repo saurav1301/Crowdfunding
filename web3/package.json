@@ -7,11 +7,12 @@
   },
   "devDependencies": {
     "@matterlabs/hardhat-zksync-solc": "^0.3.17",
-    "hardhat": "^2.13.0"
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "hardhat": "^2.22.18"
   },
   "dependencies": {
     "@thirdweb-dev/contracts": "^3.8.0",
-    "@thirdweb-dev/sdk": "^4.0.99",
+    "@thirdweb-dev/sdk": "^4.0.73",
     "dotenv": "^16.4.7",
     "zksync-web3": "^0.14.3"
   }

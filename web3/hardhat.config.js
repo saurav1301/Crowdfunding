@@ -1,17 +1,23 @@
 require("@matterlabs/hardhat-zksync-solc");
+require("@nomicfoundation/hardhat-toolbox");
+require("dotenv").config(); // ✅ Ensure .env is loaded
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
+  defaultNetwork: "sepolia", // ✅ Moved to the root level
   zksolc: {
     version: "1.3.9",
     compilerSource: "binary",
     settings: {
-      optimizer: {
-        enabled: true,
-      },
+      optimizer: { enabled: true },
     },
   },
   networks: {
+    hardhat: {},
+    sepolia: {
+      url: "https://rpc.ankr.com/eth_sepolia",
+      accounts: [`0x${process.env.PRIVATE_KEY}`], // ✅ Ensure .env has PRIVATE_KEY
+    },
     zksync_testnet: {
       url: "https://zksync2-testnet.zksync.dev",
       ethNetwork: "goerli",
@@ -33,19 +39,8 @@ module.exports = {
   },
   solidity: {
     version: "0.8.17",
-    defaultNetwork: "sepolia",
-    networks:{
-      hardhat:{},
-      sepolia:{
-        url:"https://rpc.ankr.com/eth_sepolia",
-        accounts:[`0x${process.env.PRIVATE_KEY}`],
-      },
-    },
     settings: {
-      optimizer: {
-        enabled: true,
-        runs: 200,
-      },
+      optimizer: { enabled: true, runs: 200 },
     },
   },
 };
