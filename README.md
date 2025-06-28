@@ -13,9 +13,6 @@ A Web3-based decentralized platform where users can donate cryptocurrency secure
 - Track donation history
 - Decentralized fund withdrawal without central authority
 
-## 📸 Screenshots
-(See how to add below)
-
 ## 🚀 How to Run
 1. Install MetaMask extension
 2. Clone this repo
